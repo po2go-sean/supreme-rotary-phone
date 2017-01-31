@@ -1,0 +1,13 @@
+{
+  "comments": [
+    "Directory paths should be full, absolute paths, or paths relative to this file. ",
+    "Paths starting with a / will be assumed to be absolute. paths starting with anything",
+    "else will be assumed to be relative."
+    ],
+  "directories": [
+    "/var/inbox",
+    "/var/outbox",
+    "var/client1/outbox"
+  ]
+
+}
