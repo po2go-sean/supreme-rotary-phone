@@ -27,20 +27,35 @@ foreach ($directories as $directory) {
 
         // Glob will locate files that match the pattern supplied
         foreach (glob($directory . '/' . $ruleSet->pattern) as $file) {
-            // Touch the file to update it's timestamp.
-            touch($file);
 
             // POST the file:
             $result = curlPostRawData($ruleSet->url, file_get_contents($file));
 
+
+            // If the cURL POST responded with an error $result is false.
+            if (!$result) {
+                // TODO: Log failure, then go to the next file.
+                continue;
+            }
+
             // TODO: Replace This with a logger.
-            echo 'RESULT for FILE (' . $file . '): ' . print_r($result, true) . PHP_EOL;
+            echo 'RESULT for FILE (' . $file . '): ' . PHP_EOL;
+            var_dump($result);
+
+
+            // Touch the file to update it's timestamp, until we have an archival system.
+            touch($file);
+
+
+            // TODO: Read the response and determine if the file should be archived or not.
 
             // TODO: Add a post-POST archival utility.
 
         }
     }
 }
+
+
 /**
  * Send a POST request using cURL
  *
