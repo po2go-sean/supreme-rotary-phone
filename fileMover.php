@@ -1,4 +1,10 @@
 <?php
+// Explicitly set the current TimeZone to be used.
+// If it is already set in the php.ini, GREAT, keep it!
+// If not, set it to UTC.
+$tz = ini_get('date.timezone')?:'UTC';
+ini_set('date.timezone', $tz);
+
 /**
  * Directories Will be a JSON array of Directory Paths.
  *
