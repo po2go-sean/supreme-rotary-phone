@@ -93,3 +93,50 @@ function curlPostRawData($url, $post = null)
 
     return $result;
 }
+
+/**
+ * Creates 2 log files.
+ * One Unified that would contain all messages of any level for easier debugging
+ * On "explicit" that has logs grouped by severity based upon level.
+ *
+ * @param string $message
+ * @param string $fileName
+ * @param string $level
+ */
+function logMessage($message, $fileName='FileMover.log', $level='INFO')
+{
+    $path = 'var/logs/';
+
+    $definedLevels = [
+        'EMERGENCY' => 'SEVERE',    // system is unusable
+        'ALERT' => 'SEVERE',        // action must be taken immediately
+        'CRITICAL' => 'SEVERE',     // critical conditions
+        'ERROR' => 'ERROR',        // error conditions
+        'WARNING' => 'MINOR',      // warning conditions
+        'NOTICE' => 'MINOR',       // normal, but significant, condition
+        'INFO' => 'INFO',         // informational message
+        'DEBUG' => 'INFO'        // debug-level message
+    ];
+
+    if (!in_array($level, $definedLevels)) {
+        $level = 'INFO';
+    }
+
+    $now = new DateTime();
+
+    $message = $now->format('Y-m-d H:i:s O') . ' [' . $level . ']: ' . $message . PHP_EOL;
+
+    $explicitFilePath = $path . $definedLevels[$level] . '-' .  $fileName;
+    $unifiedFilePath = $path . $fileName;
+
+    //
+    $handleExplicit = fopen($explicitFilePath, 'ab');
+    fwrite($handleExplicit, $message);
+    fclose($handleExplicit);
+
+    $handleUnified = fopen($unifiedFilePath, 'ab');
+    fwrite($handleUnified, $message);
+    fclose($handleUnified);
+
+
+}
