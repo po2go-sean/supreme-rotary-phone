@@ -40,13 +40,17 @@ foreach ($directories as $directory) {
 
             // If the cURL POST responded with an error $result is false.
             if (!$result) {
-                // TODO: Log failure, then go to the next file.
+                // Log failure, then go to the next file.
+                $message = 'FILE: ' . $file . ' failed to POST to ' . $ruleSet->url . '. File will remain in place.';
+                $fileName = str_replace('/', '_', $directory) . '.log';
+                logMessage($message, $fileName, 'ERROR');
                 continue;
             }
 
             // TODO: Replace This with a logger.
-            echo 'RESULT for FILE (' . $file . '): ' . PHP_EOL;
-            var_dump($result);
+            $message =  'RESULT for FILE (' . $file . '): ' . PHP_EOL . print_r($result,true);
+            $fileName = str_replace('/', '_', $directory) . '.log';
+            logMessage($message, $fileName, 'INFO');
 
 
             // Touch the file to update it's timestamp, until we have an archival system.
@@ -86,8 +90,10 @@ function curlPostRawData($url, $post = null)
     $ch = curl_init();
     curl_setopt_array($ch, $defaults);
     if (!$result = curl_exec($ch)) {
-        // TODO: Log Errors
-        trigger_error(curl_error($ch));
+        // Log Errors
+        $message  = PHP_EOL . "\t" . 'cURL Error: ' . curl_error($ch);
+        $message .= PHP_EOL . "\t" . 'POST URL  : ' . $url;
+        logMessage($message, 'cURLError.log', 'ERROR');
     }
     curl_close($ch);
 
