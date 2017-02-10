@@ -47,7 +47,7 @@ foreach ($directories as $directory) {
                 continue;
             }
 
-            // TODO: Replace This with a logger.
+            // Log results.
             $message =  'RESULT for FILE (' . $file . '): ' . PHP_EOL . print_r($result,true);
             $fileName = str_replace('/', '_', $directory) . '.log';
             logMessage($message, $fileName, 'INFO');
@@ -59,7 +59,8 @@ foreach ($directories as $directory) {
 
             // TODO: Read the response and determine if the file should be archived or not.
 
-            // TODO: Add a post-POST archival utility.
+            // Zip it up and delete it.
+            archiveFile($file, $fileName . '.zip');
 
         }
     }
@@ -143,6 +144,44 @@ function logMessage($message, $fileName='FileMover.log', $level='INFO')
     $handleUnified = fopen($unifiedFilePath, 'ab');
     fwrite($handleUnified, $message);
     fclose($handleUnified);
+
+}
+
+/**
+ * This will Zip the incoming file, delete the original and optionally move the archive elsewhere.
+ * It is possible to archive multiple file by calling this mulitole times, always using the same
+ * $archiveFileName
+ *
+ * @param string        $originalFileName
+ * @param null|string   $archiveFileName
+ */
+function archiveFile($originalFileName, $archiveFileName = null)
+{
+   $zip = new ZipArchive();
+   if (null === $archiveFileName) {
+       $archiveFileName = $originalFileName .'.zip';
+   }
+
+   if ($zip->open($archiveFileName, ZipArchive::CREATE) !== true) {
+       $message .= 'Unable to create archive "'.$archiveFileName.'" for file "'.$originalFileName.'"';
+       $message .= "\t" . 'This file will be re-POSTED if not manually deleted or moved.';
+       logMessage($message,'Archive.log','CRITICAL');
+       return;
+   }
+
+   $zip->addFile($originalFileName);
+   $zip->close();
+
+   $deleted = unlink($originalFileName);
+
+   if ($deleted) {
+       $message = 'Original File: ' . $originalFileName . ' deleted.';
+       logMessage($message, 'Archive.log', 'INFO');
+       return;
+   }
+    $message  = 'Original File: ' . $originalFileName . ' failed to be deleted.';
+    $message .= "\t" . 'This file will be re-POSTED if not manually deleted or moved.';
+    logMessage($message, 'Archive.log', 'CRITICAL');
 
 
 }
