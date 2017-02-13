@@ -5,6 +5,8 @@
 $tz = ini_get('date.timezone')?:'UTC';
 ini_set('date.timezone', $tz);
 
+define('SEVERELY_OLD', 60*60*24*2); // 2 Days old.
+
 /**
  * Directories Will be a JSON array of Directory Paths.
  *
@@ -40,24 +42,27 @@ foreach ($directories as $directory) {
 
             // If the cURL POST responded with an error $result is false.
             if (!$result) {
-                // Log failure, then go to the next file.
+                // Log failure, check age, Log files, then go to the next file.
+                $logLevel = 'ERROR';
+                // If the file is considered "Severely Old" log to a critical file level, so we will be notified by the log monitor cron.
+                if (fileAge($file) > SEVERELY_OLD) {
+                    $logLevel = 'CRITICAL';
+                }
+
                 $message = 'FILE: ' . $file . ' failed to POST to ' . $ruleSet->url . '. File will remain in place.';
                 $fileName = str_replace('/', '_', $directory) . '.log';
-                logMessage($message, $fileName, 'ERROR');
+                logMessage($message, $fileName, $logLevel);
                 continue;
             }
 
             // Log results.
-            $message =  'RESULT for FILE (' . $file . '): ' . PHP_EOL . print_r($result,true);
+            $message =  PHP_EOL . "\t" . 'RESULT for FILE (' . $file . '): ' . PHP_EOL . print_r($result,true) . PHP_EOL;
             $fileName = str_replace('/', '_', $directory) . '.log';
             logMessage($message, $fileName, 'INFO');
 
-
-            // Touch the file to update it's timestamp, until we have an archival system.
-            touch($file);
-
-
             // TODO: Read the response and determine if the file should be archived or not.
+            // TODO: There may be times where we had a successful POST, but we don't have the file and will need to rePOST.
+            // TODO: I don't know what those circumstances might be, so we're not currently handling them.
 
             // Zip it up and delete it.
             archiveFile($file, $fileName . '.zip');
@@ -136,11 +141,12 @@ function logMessage($message, $fileName='FileMover.log', $level='INFO')
     $explicitFilePath = $path . $definedLevels[$level] . '-' .  $fileName;
     $unifiedFilePath = $path . $fileName;
 
-    //
+    // Write to the explicit log level file.
     $handleExplicit = fopen($explicitFilePath, 'ab');
     fwrite($handleExplicit, $message);
     fclose($handleExplicit);
 
+    // Write to ethe unified log level file.
     $handleUnified = fopen($unifiedFilePath, 'ab');
     fwrite($handleUnified, $message);
     fclose($handleUnified);
@@ -183,5 +189,19 @@ function archiveFile($originalFileName, $archiveFileName = null)
     $message .= "\t" . 'This file will be re-POSTED if not manually deleted or moved.';
     logMessage($message, 'Archive.log', 'CRITICAL');
 
+}
 
+/**
+ * Returns the age of the file.
+ *
+ * @param string $filename Path to file including filename.
+ *
+ * @return int   Age of file in seconds.
+ */
+function fileAge($filename)
+{
+    $rightNow = time();
+    $fileTime = filemtime($filename);
+
+    return $rightNow - $fileTime;
 }
