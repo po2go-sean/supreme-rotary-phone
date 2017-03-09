@@ -4,7 +4,10 @@
     "* matches 0 or more of any character except / ",
     "? matches exactly 1 of any character except / ",
     "",
-    "url should be capable of receiving a POST with the contents of the file as a raw data string."
+    "url should be capable of receiving a POST with the contents of the file as a raw data string.",
+    "",
+    "Configuration:",
+    "old is a measure in DAYS before a file will be logged as CRITICAL."
   ],
   "rules": [
     {
@@ -18,6 +21,11 @@
     {
       "pattern": "CATALOG*.txt",
       "url": "http://gateway.localhost:8080/gateway/punchout/request/catalog/wq520cfed3159e1"
+    }
+  ],
+  "configuration" : [
+    {
+      "old" : 5
     }
   ]
 }

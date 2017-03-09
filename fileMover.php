@@ -6,6 +6,7 @@ $tz = ini_get('date.timezone')?:'UTC';
 ini_set('date.timezone', $tz);
 
 define('SEVERELY_OLD', 60*60*24*2); // 2 Days old.
+define('ONE_DAY', 60*60*24);
 
 /**
  * Directories Will be a JSON array of Directory Paths.
@@ -28,7 +29,9 @@ foreach ($directories as $directory) {
      *
      * @var array $po2goRules
      */
-    $po2goRules = json_decode(file_get_contents($directory . '/.po2go'))->rules;
+    $jsonObject = json_decode(file_get_contents($directory . '/.po2go'));
+    $po2goRules = $jsonObject->rules;
+    $config = $jsonObject->configuration;
 
     // Step through each rule set.
     foreach ($po2goRules as $ruleSet) {
@@ -45,7 +48,11 @@ foreach ($directories as $directory) {
                 // Log failure, check age, Log files, then go to the next file.
                 $logLevel = 'ERROR';
                 // If the file is considered "Severely Old" log to a critical file level, so we will be notified by the log monitor cron.
-                if (fileAge($file) > SEVERELY_OLD) {
+                $old = SEVERELY_OLD;
+                if (!empty($config)) {
+                    $old = $config->old ? ($config->old * ONE_DAY) : SEVERELY_OLD;
+                }
+                if (fileAge($file) > $old) {
                     $logLevel = 'CRITICAL';
                 }
 
