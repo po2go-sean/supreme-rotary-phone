@@ -117,7 +117,7 @@ function curlPostRawData($url, $post = null)
  */
 function logMessage($message, $fileName='FileMover.log', $level='INFO')
 {
-    $path = 'var/logs/';
+    $path = __DIR__ . '/var/logs/';
 
     $definedLevels = [
         'EMERGENCY' => 'SEVERE',    // system is unusable
