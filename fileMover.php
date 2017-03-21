@@ -5,8 +5,8 @@
 $tz = ini_get('date.timezone')?:'UTC';
 ini_set('date.timezone', $tz);
 
-define('SEVERELY_OLD', 60*60*24*2); // 2 Days old.
-define('ONE_DAY', 60*60*24);
+define('SEVERELY_OLD', 3600*24*2); // 2 Days old.
+define('ONE_HOUR', 3600);
 
 /**
  * Directories Will be a JSON array of Directory Paths.
@@ -50,7 +50,7 @@ foreach ($directories as $directory) {
                 // If the file is considered "Severely Old" log to a critical file level, so we will be notified by the log monitor cron.
                 $old = SEVERELY_OLD;
                 if (!empty($config)) {
-                    $old = $config->old ? ($config->old * ONE_DAY) : SEVERELY_OLD;
+                    $old = $config->old ? ($config->old * ONE_HOUR) : SEVERELY_OLD;
                 }
                 if (fileAge($file) > $old) {
                     $logLevel = 'CRITICAL';

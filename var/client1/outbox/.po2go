@@ -7,7 +7,7 @@
     "url should be capable of receiving a POST with the contents of the file as a raw data string.",
     "",
     "Configuration:",
-    "old is a measure in DAYS before a file will be logged as CRITICAL."
+    "old is a measure in HOURS before a file will be logged as CRITICAL."
   ],
   "rules": [
     {
