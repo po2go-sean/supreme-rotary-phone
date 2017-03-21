@@ -7,7 +7,7 @@
     "url should be capable of receiving a POST with the contents of the file as a raw data string.",
     "",
     "Configuration:",
-    "old is a measure in DAYS before a file will be logged as CRITICAL."
+    "old is a measure in HOURS before a file will be logged as CRITICAL."
   ],
   "rules": [
     {
@@ -20,7 +20,12 @@
     },
     {
       "pattern": "CATALOG*.txt",
-      "url": "http://gateway.localhost:8080/gateway/punchout/request/catalog/wq520cfed3159e1"
+      "url": "http://gateway.localhost:8080/gateway/punchout/request/catalog/wq520cfed3159e1",
+      "local_path": "/Users/sprunka/Documents/projects/FileMover/var/client1/inbox"
+    },
+    {
+      "pattern": "xyz.*",
+      "local_path": "/Users/sprunka/Documents/projects/FileMover/var/client1/inbox"
     }
   ],
   "configuration" : [

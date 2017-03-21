@@ -5,8 +5,8 @@
 $tz = ini_get('date.timezone')?:'UTC';
 ini_set('date.timezone', $tz);
 
-define('SEVERELY_OLD', 60*60*24*2); // 2 Days old.
-define('ONE_DAY', 60*60*24);
+define('SEVERELY_OLD', 3600*24*2); // 2 Days old.
+define('ONE_HOUR', 3600);
 
 /**
  * Directories Will be a JSON array of Directory Paths.
@@ -39,24 +39,50 @@ foreach ($directories as $directory) {
         // Glob will locate files that match the pattern supplied
         foreach (glob($directory . '/' . $ruleSet->pattern) as $file) {
 
-            // POST the file:
-            $result = curlPostRawData($ruleSet->url, file_get_contents($file));
+
+            $result = false;
+            // if we have a URL, POST it.
+            // if we have a local directory path, move it!
+            $url = $ruleSet->url ? : false;
+            if ($url) {// POST the file:
+                $result = array();
+                $result['post'] = curlPostRawData($url, file_get_contents($file));
+            }
+
+            $path = $ruleSet->local_path ? : false;
+
+            if ($path) {
+                if (!is_array($result)) {
+                    $result = array();
+                }
+                $result['transfer'] =  transferFileLocally($path, $file);
+            }
 
 
             // If the cURL POST responded with an error $result is false.
-            if (!$result) {
+            if ($result === false || (is_array($result) && ($result['post'] === false || $result['transfer'] === false))) {
                 // Log failure, check age, Log files, then go to the next file.
                 $logLevel = 'ERROR';
                 // If the file is considered "Severely Old" log to a critical file level, so we will be notified by the log monitor cron.
                 $old = SEVERELY_OLD;
                 if (!empty($config)) {
-                    $old = $config->old ? ($config->old * ONE_DAY) : SEVERELY_OLD;
+                    $old = $config->old ? ($config->old * ONE_HOUR) : SEVERELY_OLD;
                 }
                 if (fileAge($file) > $old) {
                     $logLevel = 'CRITICAL';
                 }
 
-                $message = 'FILE: ' . $file . ' failed to POST to ' . $ruleSet->url . '. File will remain in place.';
+                $message = 'FILE: ' . $file . 'delivery failure --' . PHP_EOL;
+                if (is_array($result) && $result['post'] === false) {
+                    $message .= 'Failed to POST to ' . $url . '. File will remain in place.' . PHP_EOL;
+                }
+                if (is_array($result) && $result['transfer'] === false) {
+                    $message .= 'Failed to MOVE to ' . $path . '. File will remain in place.' . PHP_EOL;
+                }
+                if (!is_array($result)) {
+                    $message .= 'No delivery route set. File will remain in place.' . PHP_EOL;
+                }
+                $message .= '--------------';
                 $fileName = str_replace('/', '_', $directory) . '.log';
                 logMessage($message, $fileName, $logLevel);
                 continue;
@@ -64,15 +90,17 @@ foreach ($directories as $directory) {
 
             // Log results.
             $message =  PHP_EOL . "\t" . 'RESULT for FILE (' . $file . '): ' . PHP_EOL . print_r($result,true) . PHP_EOL;
-            $fileName = str_replace('/', '_', $directory) . '.log';
-            logMessage($message, $fileName, 'INFO');
+            $fileName = str_replace('/', '_', $directory);
+            logMessage($message, $fileName . '.log', 'INFO');
 
             // TODO: Read the response and determine if the file should be archived or not.
             // TODO: There may be times where we had a successful POST, but we don't have the file and will need to rePOST.
             // TODO: I don't know what those circumstances might be, so we're not currently handling them.
 
-            // Zip it up and delete it.
-            archiveFile($file, $fileName . '.zip');
+            // Zip it up and delete it, if it did not get moved. (for POST only files)
+            if (file_exists($file)) {
+                archiveFile($file, $fileName . '.zip');
+            }
 
         }
     }
@@ -111,6 +139,35 @@ function curlPostRawData($url, $post = null)
     curl_close($ch);
 
     return $result;
+}
+
+/**
+ * @param string $path
+ * @param string $fileName
+ * @param null|string   $user
+ *
+ * @return bool
+ */
+function transferFileLocally($path, $fileName, $user = null)
+{
+    if ($user) {
+        $result = chown($fileName, $user);
+        if (!$result) {
+            $message = 'Failed to chown.';
+            logMessage($message, 'filemove.log', 'ERROR');
+
+            return $result;
+        }
+    }
+    $result = rename($fileName, $path.'/'.basename($fileName));
+    if (!$result) {
+        $message = 'Failed to rename.';
+        logMessage($message,'filemove.log', 'ERROR');
+        return $result;
+    }
+
+    return true;
+
 }
 
 /**
@@ -175,6 +232,7 @@ function archiveFile($originalFileName, $archiveFileName = null)
        $archiveFileName = $originalFileName .'.zip';
    }
 
+   $message = '';
    if ($zip->open($archiveFileName, ZipArchive::CREATE) !== true) {
        $message .= 'Unable to create archive "'.$archiveFileName.'" for file "'.$originalFileName.'"';
        $message .= "\t" . 'This file will be re-POSTED if not manually deleted or moved.';
