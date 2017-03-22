@@ -39,6 +39,10 @@ foreach ($directories as $directory) {
         // Glob will locate files that match the pattern supplied
         foreach (glob($directory . '/' . $ruleSet->pattern) as $file) {
 
+            if (basename($file) === '.po2go') {
+                continue;
+            }
+
 
             $result = false;
             // if we have a URL, POST it.
