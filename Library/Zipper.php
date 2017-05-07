@@ -11,6 +11,7 @@ namespace FileMover\Library;
 
 class Zipper
 {
+    const LOG_NAME = 'Archive.log';
     /**
      * This will Zip the incoming file, delete the original and optionally move the archive elsewhere.
      * It is possible to archive multiple file by calling this mulitole times, always using the same
@@ -30,7 +31,7 @@ class Zipper
         if ($zip->open($archiveFileName, \ZipArchive::CREATE) !== true) {
             $message .= 'Unable to create archive "' . $archiveFileName . '" for file "' . $originalFileName . '"';
             $message .= "\t" . 'This file will be re-POSTED if not manually deleted or moved.';
-            Logger::logMessage($message, 'Archive.log', 'CRITICAL');
+            Logger::logMessage($message, self::LOG_NAME, 'CRITICAL');
 
             return;
         }
@@ -42,13 +43,13 @@ class Zipper
 
         if ($deleted) {
             $message = 'Original File: ' . $originalFileName . ' deleted.';
-            Logger::logMessage($message, 'Archive.log', 'INFO');
+            Logger::logMessage($message, self::LOG_NAME, 'INFO');
 
             return;
         }
         $message = 'Original File: ' . $originalFileName . ' failed to be deleted.';
         $message .= "\t" . 'This file will be re-POSTED if not manually deleted or moved.';
-        Logger::logMessage($message, 'Archive.log', 'CRITICAL');
+        Logger::logMessage($message, self::LOG_NAME, 'CRITICAL');
 
     }
 

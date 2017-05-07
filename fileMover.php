@@ -1,12 +1,23 @@
 <?php
+namespace FileMover;
+
+use FileMover\Library\Logger;
+use FileMover\Library\Mover;
+use FileMover\Library\Poster;
+use FileMover\Library\Unzipper;
+use FileMover\Library\Zipper;
+
 // Explicitly set the current TimeZone to be used.
 // If it is already set in the php.ini, GREAT, keep it!
 // If not, set it to UTC.
-$tz = ini_get('date.timezone')?:'UTC';
+$tz = ini_get('date.timezone') ?: 'UTC';
 ini_set('date.timezone', $tz);
 
-define('SEVERELY_OLD', 3600*24*2); // 2 Days old.
+define('SEVERELY_OLD', 3600 * 2); // 2 Hours old.
 define('ONE_HOUR', 3600);
+
+// Autoloading:
+require_once __DIR__ . '/vendor/autoload.php';
 
 /**
  * Directories Will be a JSON array of Directory Paths.
@@ -44,22 +55,47 @@ foreach ($directories as $directory) {
             }
 
 
+            $mimeType = mime_content_type($file);
+            Logger::logMessage(basename($file) . ' is a ' . $mimeType, 'MIMETypes.log');
+
             $result = false;
             // if we have a URL, POST it.
             // if we have a local directory path, move it!
-            $url = $ruleSet->url ? : false;
-            if ($url) {// POST the file:
+            $url = $ruleSet->url ?: false;
+            if ($url) {
+
                 $result = array();
-                $result['post'] = curlPostRawData($url, file_get_contents($file));
+
+                switch ($mimeType) {
+                    case 'application/x-rar-compressed': // .rar
+                    case 'application/x-bzip2':          // .bz2
+                    case 'application/x-gzip':           // .tgz; .gz
+                        // For now, we don't handle these archives.
+                        $result['post'] = false;
+                        break;
+                    case 'application/zip':              // .zip (includes .war & .jar)
+                        // Unzip, create multipart, and POST it.
+                        $extraction = Unzipper::extractZipArchive($file);
+                        if ($extraction) {
+                            $tmpDirName = basename($file,'.zip') . '_TMP';
+                            $result['post'] = Poster::curlMultiPartData($url, $tmpDirName);
+                        }
+                        $result['post'] = false;
+                        break;
+                    default:                             // Not an Archive.
+                        // POST the file:
+                        $result['post'] = Poster::curlPostRawData($url, file_get_contents($file));
+                        break;
+                }
             }
 
-            $path = $ruleSet->local_path ? : false;
+            $path = $ruleSet->local_path ?: false;
 
             if ($path) {
                 if (!is_array($result)) {
                     $result = array();
                 }
-                $result['transfer'] =  transferFileLocally($path, $file);
+                $result['transfer'] = Mover::transferFileLocally($path, $file);
             }
 
 
@@ -76,7 +112,7 @@ foreach ($directories as $directory) {
                     $logLevel = 'CRITICAL';
                 }
 
-                $message = 'FILE: ' . $file . 'delivery failure --' . PHP_EOL;
+                $message = 'FILE: ' . $file . ' -- delivery failure --' . PHP_EOL;
                 if (is_array($result) && $result['post'] === false) {
                     $message .= 'Failed to POST to ' . $url . '. File will remain in place.' . PHP_EOL;
                 }
@@ -88,14 +124,15 @@ foreach ($directories as $directory) {
                 }
                 $message .= '--------------';
                 $fileName = str_replace('/', '_', $directory) . '.log';
-                logMessage($message, $fileName, $logLevel);
+                Logger::logMessage($message, $fileName, $logLevel);
                 continue;
             }
 
             // Log results.
-            $message =  PHP_EOL . "\t" . 'RESULT for FILE (' . $file . '): ' . PHP_EOL . print_r($result,true) . PHP_EOL;
+            $message = PHP_EOL . "\t" . 'RESULT for FILE (' . $file . '): ' . PHP_EOL . print_r($result,
+                    true) . PHP_EOL;
             $fileName = str_replace('/', '_', $directory);
-            logMessage($message, $fileName . '.log', 'INFO');
+            Logger::logMessage($message, $fileName . '.log', 'INFO');
 
             // TODO: Read the response and determine if the file should be archived or not.
             // TODO: There may be times where we had a successful POST, but we don't have the file and will need to rePOST.
@@ -103,161 +140,11 @@ foreach ($directories as $directory) {
 
             // Zip it up and delete it, if it did not get moved. (for POST only files)
             if (file_exists($file)) {
-                archiveFile($file, $fileName . '.zip');
+                Zipper::archiveFileAsZip($file, $fileName . '.zip');
             }
 
         }
     }
-}
-
-
-/**
- * Send a POST request using cURL
- *
- * @param string $url  Target URL
- * @param string $post Raw Text Data to POST
- *
- * @return string
- */
-function curlPostRawData($url, $post = null)
-{
-    $defaults = array(
-        CURLOPT_POST           => 1,
-        CURLOPT_HEADER         => 0,
-        CURLOPT_URL            => $url,
-        CURLOPT_FRESH_CONNECT  => 1,
-        CURLOPT_RETURNTRANSFER => 1,
-        CURLOPT_FORBID_REUSE   => 1,
-        CURLOPT_TIMEOUT        => 4,
-        CURLOPT_POSTFIELDS     => $post
-    );
-
-    $ch = curl_init();
-    curl_setopt_array($ch, $defaults);
-    if (!$result = curl_exec($ch)) {
-        // Log Errors
-        $message  = PHP_EOL . "\t" . 'cURL Error: ' . curl_error($ch);
-        $message .= PHP_EOL . "\t" . 'POST URL  : ' . $url;
-        logMessage($message, 'cURLError.log', 'ERROR');
-    }
-    curl_close($ch);
-
-    return $result;
-}
-
-/**
- * @param string $path
- * @param string $fileName
- * @param null|string   $user
- *
- * @return bool
- */
-function transferFileLocally($path, $fileName, $user = null)
-{
-    if ($user) {
-        $result = chown($fileName, $user);
-        if (!$result) {
-            $message = 'Failed to chown.';
-            logMessage($message, 'filemove.log', 'ERROR');
-
-            return $result;
-        }
-    }
-    $result = rename($fileName, $path.'/'.basename($fileName));
-    if (!$result) {
-        $message = 'Failed to rename.';
-        logMessage($message,'filemove.log', 'ERROR');
-        return $result;
-    }
-
-    return true;
-
-}
-
-/**
- * Creates 2 log files.
- * One Unified that would contain all messages of any level for easier debugging
- * On "explicit" that has logs grouped by severity based upon level.
- *
- * @param string $message
- * @param string $fileName
- * @param string $level
- */
-function logMessage($message, $fileName='FileMover.log', $level='INFO')
-{
-    $path = __DIR__ . '/var/logs/';
-
-    $definedLevels = [
-        'EMERGENCY' => 'SEVERE',    // system is unusable
-        'ALERT' => 'SEVERE',        // action must be taken immediately
-        'CRITICAL' => 'SEVERE',     // critical conditions
-        'ERROR' => 'ERROR',        // error conditions
-        'WARNING' => 'MINOR',      // warning conditions
-        'NOTICE' => 'MINOR',       // normal, but significant, condition
-        'INFO' => 'INFO',         // informational message
-        'DEBUG' => 'INFO'        // debug-level message
-    ];
-
-    if (!in_array($level, $definedLevels)) {
-        $level = 'INFO';
-    }
-
-    $now = new DateTime();
-
-    $message = $now->format('Y-m-d H:i:s O') . ' [' . $level . ']: ' . $message . PHP_EOL;
-
-    $explicitFilePath = $path . $definedLevels[$level] . '-' .  $fileName;
-    $unifiedFilePath = $path . $fileName;
-
-    // Write to the explicit log level file.
-    $handleExplicit = fopen($explicitFilePath, 'ab');
-    fwrite($handleExplicit, $message);
-    fclose($handleExplicit);
-
-    // Write to ethe unified log level file.
-    $handleUnified = fopen($unifiedFilePath, 'ab');
-    fwrite($handleUnified, $message);
-    fclose($handleUnified);
-
-}
-
-/**
- * This will Zip the incoming file, delete the original and optionally move the archive elsewhere.
- * It is possible to archive multiple file by calling this mulitole times, always using the same
- * $archiveFileName
- *
- * @param string        $originalFileName
- * @param null|string   $archiveFileName
- */
-function archiveFile($originalFileName, $archiveFileName = null)
-{
-   $zip = new ZipArchive();
-   if (null === $archiveFileName) {
-       $archiveFileName = $originalFileName .'.zip';
-   }
-
-   $message = '';
-   if ($zip->open($archiveFileName, ZipArchive::CREATE) !== true) {
-       $message .= 'Unable to create archive "'.$archiveFileName.'" for file "'.$originalFileName.'"';
-       $message .= "\t" . 'This file will be re-POSTED if not manually deleted or moved.';
-       logMessage($message,'Archive.log','CRITICAL');
-       return;
-   }
-
-   $zip->addFile($originalFileName);
-   $zip->close();
-
-   $deleted = unlink($originalFileName);
-
-   if ($deleted) {
-       $message = 'Original File: ' . $originalFileName . ' deleted.';
-       logMessage($message, 'Archive.log', 'INFO');
-       return;
-   }
-    $message  = 'Original File: ' . $originalFileName . ' failed to be deleted.';
-    $message .= "\t" . 'This file will be re-POSTED if not manually deleted or moved.';
-    logMessage($message, 'Archive.log', 'CRITICAL');
-
 }
 
 /**

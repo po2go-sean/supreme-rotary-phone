@@ -11,6 +11,16 @@ namespace FileMover\Library;
 
 class Logger
 {
+    const definedLevels = [
+        'EMERGENCY' => 'SEVERE',    // system is unusable
+        'ALERT'     => 'SEVERE',    // action must be taken immediately
+        'CRITICAL'  => 'SEVERE',    // critical conditions
+        'ERROR'     => 'ERROR',     // error conditions
+        'WARNING'   => 'MINOR',     // warning conditions
+        'NOTICE'    => 'MINOR',     // normal, but significant, condition
+        'INFO'      => 'INFO',      // informational message
+        'DEBUG'     => 'INFO'       // debug-level message
+    ];
 
     /**
      * Creates 2 log files.
@@ -25,18 +35,7 @@ class Logger
     {
         $path = __DIR__ . '/../var/logs/';
 
-        $definedLevels = [
-            'EMERGENCY' => 'SEVERE',    // system is unusable
-            'ALERT'     => 'SEVERE',        // action must be taken immediately
-            'CRITICAL'  => 'SEVERE',     // critical conditions
-            'ERROR'     => 'ERROR',        // error conditions
-            'WARNING'   => 'MINOR',      // warning conditions
-            'NOTICE'    => 'MINOR',       // normal, but significant, condition
-            'INFO'      => 'INFO',         // informational message
-            'DEBUG'     => 'INFO'        // debug-level message
-        ];
-
-        if (!in_array($level, $definedLevels)) {
+        if (!array_key_exists($level, self::definedLevels)) {
             $level = 'INFO';
         }
 
@@ -44,7 +43,7 @@ class Logger
 
         $message = $now->format('Y-m-d H:i:s O') . ' [' . $level . ']: ' . $message . PHP_EOL;
 
-        $explicitFilePath = $path . $definedLevels[$level] . '-' . $fileName;
+        $explicitFilePath = $path . self::definedLevels[$level] . '-' . $fileName;
         $unifiedFilePath = $path . $fileName;
 
         // Write to the explicit log level file.
