@@ -19,7 +19,7 @@ class Mover
      *
      * @return bool
      */
-    public static function transferFileLocally($path, $fileName, $user = null): bool
+    public static function transferFileLocally($path, $fileName, $user = null)
     {
         if ($user) {
             $result = chown($fileName, $user);

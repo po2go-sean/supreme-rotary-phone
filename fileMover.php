@@ -1,6 +1,7 @@
 <?php
 namespace FileMover;
 
+use FileMover\Library\Cleaner;
 use FileMover\Library\Logger;
 use FileMover\Library\Mover;
 use FileMover\Library\Poster;
@@ -75,12 +76,15 @@ foreach ($directories as $directory) {
                         break;
                     case 'application/zip':              // .zip (includes .war & .jar)
                         // Unzip, create multipart, and POST it.
-                        $extraction = Unzipper::extractZipArchive($file);
+                        $extraction = Unzipper::flatExtract($file);
+                        $result['post'] = false;
                         if ($extraction) {
                             $tmpDirName = basename($file,'.zip') . '_TMP';
-                            $result['post'] = Poster::curlMultiPartData($url, $tmpDirName);
+                            $boundary = uniqid();
+                            $post = Poster::buildMultiPartFile($tmpDirName, $boundary);
+                            Cleaner::removeUnzippedFiles($tmpDirName);
+                            $result['post'] = Poster::curlMultiPartData($url, $post, $boundary);
                         }
-                        $result['post'] = false;
                         break;
                     default:                             // Not an Archive.
                         // POST the file:

@@ -7,7 +7,7 @@
   "directories": [
     "/var/inbox",
     "/var/outbox",
-    "var/client1/outbox"
+    "var/client1/outbox",
+    "var/client1/inbox"
   ]
-
 }

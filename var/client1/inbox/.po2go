@@ -1,0 +1,23 @@
+{
+  "comments": [
+    "Pattern uses PHP's glob regex. This is different from PCRE.",
+    "* matches 0 or more of any character except / ",
+    "? matches exactly 1 of any character except / ",
+    "",
+    "url should be capable of receiving a POST with the contents of the file as a raw data string.",
+    "",
+    "Configuration:",
+    "old is a measure in HOURS before a file will be logged as CRITICAL."
+  ],
+  "rules": [
+    {
+      "pattern": "*.zip",
+      "url": "http://testbed.localhost/index.php"
+    }
+  ],
+  "configuration" : [
+    {
+      "old" : 5
+    }
+  ]
+}
