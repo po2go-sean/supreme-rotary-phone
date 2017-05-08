@@ -11,10 +11,6 @@ namespace FileMover\Library;
 
 class FlatZipArchive extends \ZipArchive
 {
-    public function __construct()
-    {
-        Logger::logMessage('WTF?', 'fuck');
-    }
 
     public function extractSubdirTo($destination, $subdir)
     {
@@ -23,12 +19,6 @@ class FlatZipArchive extends \ZipArchive
         // Prepare dirs
         $destination = str_replace(array("/", "\\"), DIRECTORY_SEPARATOR, $destination);
         $subdir = str_replace(array("/", "\\"), "/", $subdir);
-
-
-        Logger::logMessage('Dest: ' . $destination,'fuck','DEBUG');
-        Logger::logMessage('Sub: ' . $subdir,'fuck','DEBUG');
-
-
 
         if (substr($destination, mb_strlen(DIRECTORY_SEPARATOR, "UTF-8") * -1) != DIRECTORY_SEPARATOR)
             $destination .= DIRECTORY_SEPARATOR;
@@ -65,14 +55,6 @@ class FlatZipArchive extends \ZipArchive
                                 mkdir($destination . dirname($relativePath), 0755, true);
                             }
                         }
-
-
-
-
-                        Logger::logMessage('Dest: ' . $destination,'fuck','DEBUG');
-                        Logger::logMessage('Sub: ' . $subdir,'fuck','DEBUG');
-                        Logger::logMessage('$relativePath: ' . $relativePath,'fuck','DEBUG');
-                        Logger::logMessage('contents?: ' . $this->getFromIndex($i),'fuck','DEBUG');
 
                         // New file
                         if (file_put_contents($destination . $relativePath, $this->getFromIndex($i)) === false)
