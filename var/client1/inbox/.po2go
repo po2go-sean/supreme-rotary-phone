@@ -15,9 +15,8 @@
       "url": "http://testbed.localhost/index.php"
     }
   ],
-  "configuration" : [
+  "configuration" :
     {
       "old" : 5
     }
-  ]
 }

@@ -28,9 +28,8 @@
       "local_path": "/Users/sprunka/Documents/projects/FileMover/var/client1/inbox"
     }
   ],
-  "configuration" : [
+  "configuration" :
     {
       "old" : 5
     }
-  ]
 }
