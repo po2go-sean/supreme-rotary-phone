@@ -12,20 +12,24 @@
   "rules": [
     {
       "pattern": "ORDER*.txt",
-      "url": "http://gateway.localhost:8080/gateway/order/request/id/vW523742269f389"
+      "url": "http://testbed.localhost/orders.php"
     },
     {
       "pattern": "INVOICE*.txt",
-      "url": "https://connect.punchout2go.com/gateway/order/invoice/id/vW523742269f389"
+      "url": "http://testbed.localhost/invoices.php"
     },
     {
       "pattern": "CATALOG*.txt",
-      "url": "http://gateway.localhost:8080/gateway/punchout/request/catalog/wq520cfed3159e1",
-      "local_path": "/Users/sprunka/Documents/projects/FileMover/var/client1/inbox"
+      "url": "http://testbed.localhost/catalogs.php",
+      "local_path": "var/client1/inbox"
     },
     {
       "pattern": "xyz.*",
-      "local_path": "/Users/sprunka/Documents/projects/FileMover/var/client1/inbox"
+      "local_path": "var/client1/inbox"
+    },
+    {
+      "pattern": "???.123",
+      "url": "http://testbed.localhost/special.php"
     }
   ],
   "configuration" :
