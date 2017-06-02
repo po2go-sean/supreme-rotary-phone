@@ -1,4 +1,5 @@
 <?php
+
 namespace FileMover;
 
 use FileMover\Library\Cleaner;
@@ -30,7 +31,7 @@ $directories = json_decode(file_get_contents(__DIR__ . '/.directories'))->direct
 // Step through each directory
 foreach ($directories as $directory) {
     /** var string $directory */
-    if (!file_exists($directory . '/.po2go')) {
+    if ( ! file_exists($directory . '/.po2go')) {
         // TODO: Add Logging about skipping the directory.
         continue;
     }
@@ -43,7 +44,7 @@ foreach ($directories as $directory) {
      */
     $jsonObject = json_decode(file_get_contents($directory . '/.po2go'));
     $po2goRules = $jsonObject->rules;
-    $config = $jsonObject->configuration;
+    $config     = $jsonObject->configuration;
 
     // Step through each rule set.
     foreach ($po2goRules as $ruleSet) {
@@ -55,15 +56,15 @@ foreach ($directories as $directory) {
                 continue;
             }
 
-
             $mimeType = mime_content_type($file);
             Logger::logMessage(basename($file) . ' is a ' . $mimeType, 'MIMETypes.log');
 
             $result = false;
             // if we have a URL, POST it.
             // if we have a local directory path, move it!
-            $url = $ruleSet->url ?: false;
-            if ($url) {
+            $url = false;
+            if (isset($ruleSet->url) && $ruleSet->url) {
+                $url = $ruleSet->url;
 
                 $result = array();
 
@@ -76,12 +77,12 @@ foreach ($directories as $directory) {
                         break;
                     case 'application/zip':              // .zip (includes .war & .jar)
                         // Unzip, create multipart, and POST it.
-                        $extraction = Unzipper::flatExtract($file);
+                        $extraction     = Unzipper::flatExtract($file);
                         $result['post'] = false;
                         if ($extraction) {
-                            $tmpDirName = basename($file,'.zip') . '_TMP';
-                            $boundary = uniqid();
-                            $post = Poster::buildMultiPartFile($tmpDirName, $boundary);
+                            $tmpDirName = basename($file, '.zip') . '_TMP';
+                            $boundary   = uniqid();
+                            $post       = Poster::buildMultiPartFile($tmpDirName, $boundary);
                             Cleaner::removeUnzippedFiles($tmpDirName);
                             $result['post'] = Poster::curlMultiPartData($url, $post, $boundary);
                         }
@@ -93,23 +94,24 @@ foreach ($directories as $directory) {
                 }
             }
 
-            $path = $ruleSet->local_path ?: false;
+            $path = false;
+            if (isset($ruleSet->local_path)) {
+                $path = $ruleSet->local_path ?: false;
+            }
 
             if ($path) {
-                if (!is_array($result)) {
+                if ( ! is_array($result)) {
                     $result = array();
                 }
                 $result['transfer'] = Mover::transferFileLocally($path, $file);
             }
 
-
-            // If the cURL POST responded with an error $result is false.
-            if ($result === false || (is_array($result) && ($result['post'] === false || $result['transfer'] === false))) {
-                // Log failure, check age, Log files, then go to the next file.
+            if (false === $result || (is_array($result) && ((isset($result['post']) && false === $result['post']) || (isset($result['transfer']) && false === $result['transfer'])))) {
+                // Log the failure, check the age, log again if too old files, then go to the next file.
                 $logLevel = 'ERROR';
                 // If the file is considered "Severely Old" log to a critical file level, so we will be notified by the log monitor cron.
                 $old = SEVERELY_OLD;
-                if (!empty($config)) {
+                if ( ! empty($config)) {
                     $old = $config->old ? ($config->old * ONE_HOUR) : SEVERELY_OLD;
                 }
                 if (fileAge($file) > $old) {
@@ -120,20 +122,20 @@ foreach ($directories as $directory) {
                 if (is_array($result) && $result['post'] === false) {
                     $message .= 'Failed to POST to ' . $url . '. File will remain in place.' . PHP_EOL;
                 }
-                if (is_array($result) && $result['transfer'] === false) {
+                if (is_array($result) && isset($result['transfer']) && $result['transfer'] === false) {
                     $message .= 'Failed to MOVE to ' . $path . '. File will remain in place.' . PHP_EOL;
                 }
-                if (!is_array($result)) {
+                if ( ! is_array($result)) {
                     $message .= 'No delivery route set. File will remain in place.' . PHP_EOL;
                 }
-                $message .= '--------------';
+                $message  .= '--------------';
                 $fileName = str_replace('/', '_', $directory) . '.log';
                 Logger::logMessage($message, $fileName, $logLevel);
                 continue;
             }
 
             // Log results.
-            $message = PHP_EOL . "\t" . 'RESULT for FILE (' . $file . '): ' . PHP_EOL . print_r($result,
+            $message  = PHP_EOL . "\t" . 'RESULT for FILE (' . $file . '): ' . PHP_EOL . print_r($result,
                     true) . PHP_EOL;
             $fileName = str_replace('/', '_', $directory);
             Logger::logMessage($message, $fileName . '.log', 'INFO');
