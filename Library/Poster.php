@@ -9,6 +9,8 @@
 namespace FileMover\Library;
 
 
+use Curl\Curl;
+
 class Poster
 {
 
@@ -20,60 +22,23 @@ class Poster
      * @param string $url  Target URL
      * @param string $post Raw Text Data to POST
      *
-     * @return string
+     * @return bool|string
      */
     public static function curlPostRawData($url, $post = null)
     {
-        $defaults = array(
-            CURLOPT_POST           => 1,
-            CURLOPT_HEADER         => 0,
-            CURLOPT_URL            => $url,
-            CURLOPT_FRESH_CONNECT  => 1,
-            CURLOPT_RETURNTRANSFER => 1,
-            CURLOPT_FORBID_REUSE   => 1,
-            CURLOPT_TIMEOUT        => 4,
-            CURLOPT_POSTFIELDS     => $post
-        );
-
-        $ch = curl_init();
-        curl_setopt_array($ch, $defaults);
-        if (!$result = curl_exec($ch)) {
-            // Log Errors
-            $message = PHP_EOL . "\t" . 'cURL Error: ' . curl_error($ch);
-            $message .= PHP_EOL . "\t" . 'POST URL  : ' . $url;
-            Logger::logMessage($message, self::LOG_NAME, 'ERROR');
-        }
-        curl_close($ch);
-
-        return $result;
+        return self::doPost($url,$post);
     }
 
+    /**
+     * @param string $url Target URL
+     * @param string $post Raw Multipart Text Data
+     * @param string $boundary Boundary marker.
+     *
+     * @return bool|string
+     */
     public static function curlMultiPartData($url, $post, $boundary)
     {
-        $defaults =[
-            CURLOPT_POST           => 1,
-            CURLOPT_HEADER         => 0,
-            CURLOPT_URL            => $url,
-            CURLOPT_FRESH_CONNECT  => 1,
-            CURLOPT_RETURNTRANSFER => 1,
-            CURLOPT_FORBID_REUSE   => 1,
-            CURLOPT_TIMEOUT        => 4,
-            CURLOPT_POSTFIELDS     => $post,
-            CURLOPT_HTTPHEADER     => ["Content-Type: multipart/related; boundary={$boundary}"]
-        ];
-
-        $ch = curl_init();
-        curl_setopt_array($ch, $defaults);
-        if (!$result = curl_exec($ch)) {
-            // Log Errors
-            $message = PHP_EOL . "\t" . 'cURL Error: ' . curl_error($ch);
-            $message .= PHP_EOL . "\t" . 'POST URL  : ' . $url;
-            Logger::logMessage($message, self::LOG_NAME, 'ERROR');
-        }
-        curl_close($ch);
-
-        return $result;
-
+        return self::doPost($url,$post, $boundary);
     }
 
     public static function buildMultiPartFile($directory, $boundary)
@@ -110,6 +75,46 @@ class Poster
         $out .= "--{$boundary}--";
 
         return $out;
+    }
+
+    /**
+     * @param string     $url
+     * @param array|string|null $post
+     * @param bool|string $multipart
+     *
+     * @return bool|string
+     */
+    protected static function doPost($url, $post = null, $multipart = false)
+    {
+        $curl = new Curl();
+        $curl->setOpt(CURLOPT_HEADER, 0);
+        $curl->setOpt(CURLOPT_FRESH_CONNECT, 1);
+        $curl->setOpt(CURLOPT_RETURNTRANSFER, 1);
+        $curl->setOpt(CURLOPT_FORBID_REUSE, 1);
+        $curl->setOpt(CURLOPT_TIMEOUT, 4);
+        if (false !== $multipart) {
+            $curl->setOpt(CURLOPT_HTTPHEADER, ["Content-Type: multipart/related; boundary={$multipart}"]);
+        }
+        $curl->post($url, $post);
+
+        $result = $curl->response ?: false;
+
+        // Log Results either way:
+
+        $message = PHP_EOL . "\t" . 'Response  : ' . $curl->response;
+        $message .= PHP_EOL . "\t" . 'POST URL  : ' . $url;
+        Logger::logMessage($message, self::LOG_NAME, 'DEBUG');
+
+        // Log Errors
+        if ($curl->error) {
+            $message = PHP_EOL . "\t" . 'cURL Error: ' . $curl->curl_error_message . "({$curl->error_code})";
+            $message .= PHP_EOL . "\t" . 'Response  : ' . $curl->response;
+            $message .= PHP_EOL . "\t" . 'POST URL  : ' . $url;
+            Logger::logMessage($message, self::LOG_NAME, 'ERROR');
+            $result = false;
+        }
+
+        return $result;
     }
 
 }
