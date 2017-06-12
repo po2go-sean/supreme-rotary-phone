@@ -141,8 +141,10 @@ foreach ($directories as $directory) {
             Logger::logMessage($message, $fileName . '.log', 'INFO');
 
             // TODO: Read the response and determine if the file should be archived or not.
-            // TODO: There may be times where we had a successful POST, but we don't have the file and will need to rePOST.
-            // TODO: I don't know what those circumstances might be, so we're not currently handling them.
+            // There may be times where we had a successful POST, but we don't have the file and will need to rePOST.
+            //
+            // Resolved: File Splitter on Gateway response is being read and dealt with m=by the Poster class.
+            // There may be other scenarios to be dealt with.
 
             // Zip it up and delete it, if it did not get moved. (for POST only files)
             if (file_exists($file)) {
