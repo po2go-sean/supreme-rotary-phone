@@ -91,7 +91,7 @@ class Poster
         $curl->setOpt(CURLOPT_FRESH_CONNECT, 1);
         $curl->setOpt(CURLOPT_RETURNTRANSFER, 1);
         $curl->setOpt(CURLOPT_FORBID_REUSE, 1);
-        $curl->setOpt(CURLOPT_TIMEOUT, 4);
+        $curl->setOpt(CURLOPT_TIMEOUT, 120);    // 4 seconds?? Am I kidding myself right now? BUMPed to 2 minutes, just in case.
         if (false !== $multipart) {
             $curl->setOpt(CURLOPT_HTTPHEADER, ["Content-Type: multipart/related; boundary={$multipart}"]);
         }
