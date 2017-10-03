@@ -101,7 +101,8 @@ class Poster
 
         // Log Results either way:
 
-        $message = PHP_EOL . "\t" . 'Response  : ' . $curl->response;
+        $message = PHP_EOL . "\t" . 'Status Code  : ' . $curl->http_status_code;
+        $message .= PHP_EOL . "\t" . 'Response  : ' . $curl->response;
         $message .= PHP_EOL . "\t" . 'POST URL  : ' . $url;
         Logger::logMessage($message, self::LOG_NAME, 'DEBUG');
 
