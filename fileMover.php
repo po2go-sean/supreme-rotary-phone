@@ -43,8 +43,8 @@ foreach ($directories as $directory) {
      * @var array $po2goRules
      */
     $jsonObject = json_decode(file_get_contents($directory . '/.po2go'));
-    $po2goRules = $jsonObject->rules;
-    $config     = $jsonObject->configuration;
+    $po2goRules = isset($jsonObject->rules) ? $jsonObject->rules : null;
+    $config     = isset($jsonObject->configuration) ? $jsonObject->configuration : null;
 
     // Step through each rule set.
     foreach ($po2goRules as $ruleSet) {
