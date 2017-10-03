@@ -97,7 +97,7 @@ class Poster
         }
         $curl->post($url, $post);
 
-        $result = $curl->response ?: false;
+        $result = ($curl->response !== null) ? $curl->response : false;
 
         // Log Results either way:
 
