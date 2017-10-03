@@ -117,25 +117,26 @@ class Poster
 
         // Check to see if the response is JSON that may contain one or more status codes.
         // This is very specific to PO2Go's doc splitter.
-        $json_response = json_decode($curl->response);
-        if (null !== $json_response) {
-            if (null !== $json_response->count && null !== $json_response->docs && $json_response->count > 0 && is_array($json_response->docs)) {
-                $message = '';
-                foreach ($json_response->docs as $doc) {
-                    if (null === $doc->status || ($doc->status < 200 || $doc->status > 399)) {
-                       $result = false;
-                       $message .= PHP_EOL . "\t" . 'POST response contained a document with status "' . $doc->status . '". Failing POST. ';
+        if (strpos($curl->response, '{') === 0) {
+            $json_response = json_decode($curl->response);
+            if (null !== $json_response) {
+                if (null !== $json_response->count && null !== $json_response->docs && $json_response->count > 0 && is_array($json_response->docs)) {
+                    $message = '';
+                    foreach ($json_response->docs as $doc) {
+                        if (null === $doc->status || ($doc->status < 200 || $doc->status > 399)) {
+                            $result  = false;
+                            $message .= PHP_EOL . "\t" . 'POST response contained a document with status "' . $doc->status . '". Failing POST. ';
+                        }
                     }
-                }
-                if ('' !== $message) {
-                    $message .= PHP_EOL . "\t" . 'Response  : ' . $curl->response;
-                    $message .= PHP_EOL . "\t" . 'POST URL  : ' . $url;
-                    Logger::logMessage($message, self::LOG_NAME, 'ERROR');
+                    if ('' !== $message) {
+                        $message .= PHP_EOL . "\t" . 'Response  : ' . $curl->response;
+                        $message .= PHP_EOL . "\t" . 'POST URL  : ' . $url;
+                        Logger::logMessage($message, self::LOG_NAME, 'ERROR');
+                    }
                 }
             }
         }
 
         return $result;
     }
-
 }
