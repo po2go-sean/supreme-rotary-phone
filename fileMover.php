@@ -26,14 +26,32 @@ require_once __DIR__ . '/vendor/autoload.php';
  *
  * @var array $directories
  */
-$directories = json_decode(file_get_contents(__DIR__ . '/.directories'))->directories;
+$cmd = new \Commando\Command();
+$cmd->option('directory')->aka('d')->describedAs('Specific directory to process.');
+$cmd->option('url')->aka('u')->describedAs('POST URL.');
+$cmd->option('pattern')->aka('p')->describedAs('Glob Pattern for files in directory');
+if (!empty($cmd['d'])) {
+    $dir = $cmd['d'];
+    $directories = [ $dir ];
+} else {
+    $directories = json_decode(file_get_contents(__DIR__ . '/.directories'))->directories;
+}
 
 // Step through each directory
 foreach ($directories as $directory) {
     /** var string $directory */
-    if ( ! file_exists($directory . '/.po2go')) {
+    if (!empty($cmd['u'])
+        && !empty($cmd['p'])) {
+        $po2goRules = array (
+            'pattern' => $cmd['p'],
+            'url'     => $cmd['u']
+        );
+        $config_string = null;
+    } elseif ( ! file_exists($directory . '/.po2go')) {
         // TODO: Add Logging about skipping the directory.
         continue;
+    } else {
+        $config_string = file_get_contents($directory . '/.po2go');
     }
 
     /**
@@ -42,9 +60,13 @@ foreach ($directories as $directory) {
      *
      * @var array $po2goRules
      */
-    $jsonObject = json_decode(file_get_contents($directory . '/.po2go'));
-    $po2goRules = isset($jsonObject->rules) ? $jsonObject->rules : null;
-    $config     = isset($jsonObject->configuration) ? $jsonObject->configuration : null;
+    if (!empty($config_string)) {
+        $jsonObject = json_decode($config_string);
+        $po2goRules = isset($jsonObject->rules) ? $jsonObject->rules : null;
+        $config     = isset($jsonObject->configuration) ? $jsonObject->configuration : null;
+    } else {
+        $config = array();
+    }
 
     // Step through each rule set.
     foreach ($po2goRules as $ruleSet) {
