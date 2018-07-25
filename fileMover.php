@@ -109,12 +109,12 @@ foreach ($directories as $directory) {
                             $boundary   = uniqid();
                             $post       = Poster::buildMultiPartFile($tmpDirName, $boundary);
                             Cleaner::removeUnzippedFiles($tmpDirName);
-                            $result['post'] = Poster::curlMultiPartData($url, $post, $boundary);
+                            $result['post'] = Poster::curlMultiPartData($url, $post, $boundary, $curlOpts);
                         }
                         break;
                     default:                             // Not an Archive.
                         // POST the file:
-                        $result['post'] = Poster::curlPostRawData($url, file_get_contents($file));
+                        $result['post'] = Poster::curlPostRawData($url, file_get_contents($file), $curlOpts);
                         break;
                 }
             }
