@@ -30,6 +30,7 @@ $cmd = new \Commando\Command();
 $cmd->option('directory')->aka('d')->describedAs('Specific directory to process.');
 $cmd->option('url')->aka('u')->describedAs('POST URL.');
 $cmd->option('pattern')->aka('p')->describedAs('Glob Pattern for files in directory');
+$cmd->option('timeout')->aka('t')->describedAs('curl time out option, in whole seconds. (default: 120)')->defaultsTo('120');
 if (!empty($cmd['d'])) {
     $dir = $cmd['d'];
     $directories = [ $dir ];
