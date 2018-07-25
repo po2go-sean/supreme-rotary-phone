@@ -30,12 +30,15 @@ $cmd = new \Commando\Command();
 $cmd->option('directory')->aka('d')->describedAs('Specific directory to process.');
 $cmd->option('url')->aka('u')->describedAs('POST URL.');
 $cmd->option('pattern')->aka('p')->describedAs('Glob Pattern for files in directory');
+$cmd->option('timeout')->aka('t')->describedAs('curl time out option, in whole seconds. (default: 120)')->defaultsTo('120');
 if (!empty($cmd['d'])) {
     $dir = $cmd['d'];
     $directories = [ $dir ];
 } else {
     $directories = json_decode(file_get_contents(__DIR__ . '/.directories'))->directories;
 }
+
+$curlOpts = ['timeout'=>$cmd['timeout']];
 
 // Step through each directory
 foreach ($directories as $directory) {
@@ -106,12 +109,12 @@ foreach ($directories as $directory) {
                             $boundary   = uniqid();
                             $post       = Poster::buildMultiPartFile($tmpDirName, $boundary);
                             Cleaner::removeUnzippedFiles($tmpDirName);
-                            $result['post'] = Poster::curlMultiPartData($url, $post, $boundary);
+                            $result['post'] = Poster::curlMultiPartData($url, $post, $boundary, $curlOpts);
                         }
                         break;
                     default:                             // Not an Archive.
                         // POST the file:
-                        $result['post'] = Poster::curlPostRawData($url, file_get_contents($file));
+                        $result['post'] = Poster::curlPostRawData($url, file_get_contents($file), $curlOpts);
                         break;
                 }
             }

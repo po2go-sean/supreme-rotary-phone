@@ -4,11 +4,14 @@
     "psr-4": {"FileMover\\Library\\": "Library/"}
   },
   "require": {
-    "roave/security-advisories": "dev-master",
+    "php": "^7.0",
     "nategood/commando": "*",
     "monolog/monolog": "^1.22",
     "php-console/php-console": "^3.1",
     "aws/aws-sdk-php": "^3.28",
     "curl/json": "dev-master"
+  },
+  "require-dev": {
+    "roave/security-advisories": "dev-master"
   }
 }

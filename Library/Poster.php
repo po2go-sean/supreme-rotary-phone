@@ -21,24 +21,26 @@ class Poster
      *
      * @param string $url  Target URL
      * @param string $post Raw Text Data to POST
+     * @param array  $curlOpts
      *
      * @return bool|string
      */
-    public static function curlPostRawData($url, $post = null)
+    public static function curlPostRawData($url, $post = null, array $curlOpts=[])
     {
-        return self::doPost($url,$post);
+        return self::doPost($url,$post,false,$curlOpts);
     }
 
     /**
-     * @param string $url Target URL
-     * @param string $post Raw Multipart Text Data
+     * @param string $url      Target URL
+     * @param string $post     Raw Multipart Text Data
      * @param string $boundary Boundary marker.
+     * @param array  $curlOpts
      *
      * @return bool|string
      */
-    public static function curlMultiPartData($url, $post, $boundary)
+    public static function curlMultiPartData($url, $post, $boundary, array $curlOpts = [])
     {
-        return self::doPost($url,$post, $boundary);
+        return self::doPost($url,$post, $boundary, $curlOpts);
     }
 
     public static function buildMultiPartFile($directory, $boundary)
@@ -78,20 +80,22 @@ class Poster
     }
 
     /**
-     * @param string     $url
+     * @param string            $url
      * @param array|string|null $post
-     * @param bool|string $multipart
+     * @param bool|string       $multipart
+     * @param array             $options
      *
      * @return bool|string
      */
-    protected static function doPost($url, $post = null, $multipart = false)
+    protected static function doPost($url, $post = null, $multipart = false, array $options = [])
     {
+        //Currently the only configurable option will be $options['timeout'] which will default to 2 minutes if not specified.
         $curl = new Curl();
         $curl->setOpt(CURLOPT_HEADER, 0);
         $curl->setOpt(CURLOPT_FRESH_CONNECT, 1);
         $curl->setOpt(CURLOPT_RETURNTRANSFER, 1);
         $curl->setOpt(CURLOPT_FORBID_REUSE, 1);
-        $curl->setOpt(CURLOPT_TIMEOUT, 180);    // Bumped to 3 minutes for HSAH large 810 packages.
+        $curl->setOpt(CURLOPT_TIMEOUT, $options['timeout'] ?? 180);    // Back down to 2 minutes, since it is now configurable..
         if (false !== $multipart) {
             $curl->setOpt(CURLOPT_HTTPHEADER, ["Content-Type: multipart/related; boundary={$multipart}"]);
         }
