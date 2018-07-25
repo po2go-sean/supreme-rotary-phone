@@ -38,6 +38,8 @@ if (!empty($cmd['d'])) {
     $directories = json_decode(file_get_contents(__DIR__ . '/.directories'))->directories;
 }
 
+$curlOpts = ['timeout'=>$cmd['timeout']];
+
 // Step through each directory
 foreach ($directories as $directory) {
     /** var string $directory */
