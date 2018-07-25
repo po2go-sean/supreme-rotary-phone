@@ -4,7 +4,6 @@
     "psr-4": {"FileMover\\Library\\": "Library/"}
   },
   "require": {
-    "php": "^7.0",
     "nategood/commando": "*",
     "monolog/monolog": "^1.22",
     "php-console/php-console": "^3.1",
